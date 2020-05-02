@@ -1,7 +1,9 @@
 if (chrome) {
-  chrome.runtime.onMessage.addListener(notify);
-}else {
-  browser.runtime.onMessage.addListener(notify);
+    chrome.runtime.onMessage.addListener(notify);
+    chrome.browserAction.onClicked.addListener(action);
+} else {
+    browser.runtime.onMessage.addListener(notify);
+    browser.browserAction.onClicked.addListener(action);
 }
 
 function onError(e) {
@@ -9,30 +11,38 @@ function onError(e) {
 }
 
 function createReadableVersion(dom) {
-  var reader = new Readability(dom);
-  var article = reader.parse();
-  return article;
+    var reader = new Readability(dom);
+    var article = reader.parse();
+    return article;
 }
 
-function convertArticleToMarkdown(article) {
-  var turndownService = new TurndownService()
-  var markdown = turndownService.turndown(article.content);
-  
-  //add article titel as header
-  markdown = "# " + article.title + "\n" + markdown;
+function convertArticleToMarkdown(article, source) {
+    var turndownService = new TurndownService()
+    var gfm = turndownPluginGfm.gfm
+    turndownService.use(gfm)
+    var markdown = turndownService.turndown(article.content);
 
-  //add summary if exist
-  if (article.excerpt != null) {
-    markdown = "> " + article.excerpt + "\n\n" + markdown;
-  }
-  return markdown;
+    //add summary if exist
+    if (!!article.excerpt) {
+        markdown = "\n> " + article.excerpt + "\n\n" + markdown;
+    }
+
+    //add article titel as header
+    markdown = "# " + article.title + "\n" + markdown;
+
+    //add source if exist
+    if (!!source) {
+        markdown = markdown + "\n\n\n" + "[Source](" + source + ")";
+    }
+
+    return markdown;
 }
 
 function generateValidFileName(title) {
-  //remove < > : " / \ | ? * 
-  var illegalRe = /[\/\?<>\\:\*\|":]/g;
-  var name =  title.replace(illegalRe, "");
-  return name;
+    //remove < > : " / \ | ? *
+    var illegalRe = /[\/\?<>\\:\*\|":]/g;
+    var name = title.replace(illegalRe, "");
+    return name;
 }
 
 function downloadMarkdown(markdown, article, filenameTemplate) {
@@ -41,7 +51,7 @@ function downloadMarkdown(markdown, article, filenameTemplate) {
   });
   var url = URL.createObjectURL(blob);
   if (chrome) {
-      // return {
+    // return {
       //     title: this._articleTitle,
       //     byline: metadata.byline || this._articleByline,
       //     dir: this._articleDir,
@@ -73,16 +83,15 @@ function downloadMarkdown(markdown, article, filenameTemplate) {
           }
       };
       console.log(url)
-      console.log(ProcessorHelper.evalTemplate(filenameTemplate, options))
-    chrome.downloads.download({
+      console.log(ProcessorHelper.evalTemplate(filenameTemplate, options))chrome.downloads.download({
       url: url,
       filename: ProcessorHelper.evalTemplate(filenameTemplate, options),
-      // filename: generateValidFileName(article.title) + ".md",
+      // filename:generateValidFileName(article.title) + ".md",
       saveAs: false
     }, function(id) {
       chrome.downloads.onChanged.addListener((delta ) => {
         //release the url for the blob
-        if (delta.state && delta.state.current == "complete") {
+        if (delta.state && delta.state.current === "complete") {
           if (delta.id === id) {
             window.URL.revokeObjectURL(url);
           }
@@ -93,14 +102,13 @@ function downloadMarkdown(markdown, article, filenameTemplate) {
     browser.downloads.download({
       url: url,
       filename: ProcessorHelper.evalTemplate(filenameTemplate, this.options),
-        // filename: generateValidFileName(article.title) + ".md",
-        // article.title) + ".md",
-      incognito: true,
+        // filename:generateValidFileName(article.title) + ".md",
+      // article.title) + ".md",incognito: true,
       saveAs: false
     }).then((id) => {
       browser.downloads.onChanged.addListener((delta ) => {
         //release the url for the blob
-        if (delta.state && delta.state.current == "complete") {
+        if (delta.state && delta.state.current === "complete") {
           if (delta.id === id) {
             window.URL.revokeObjectURL(url);
           }
@@ -115,14 +123,16 @@ function downloadMarkdown(markdown, article, filenameTemplate) {
 
 //function that handles messages from the injected script into the site
 function notify(message) {
-  var parser = new DOMParser();
-  var dom = parser.parseFromString(message.dom, "text/html");
-  if (dom.documentElement.nodeName == "parsererror"){
-    console.error( "error while parsing");
-  } 
+    var parser = new DOMParser();
+    var dom = parser.parseFromString(message.dom, "text/html");
+    if (dom.documentElement.nodeName === "parsererror") {
+        console.error("error while parsing");
+    }
+
+
 
   var article = createReadableVersion(dom);
-  var markdown = convertArticleToMarkdown(article);
+  var markdown = convertArticleToMarkdown(article, message.source);
   function runDownloadMarkdown(storedSettings) {
       defaultSettings = {filenameTemplate: "archives/{url-hostname}/{page-title}_({date-iso}_{time-locale}).md"}
       if (!storedSettings.filenameTemplate || !storedSettings.dataTypes) {
@@ -133,6 +143,7 @@ function notify(message) {
   const gettingStoredSettings = browser.storage.local.get();
   gettingStoredSettings.then(runDownloadMarkdown, onError);
 }
+
 // const URL = window.URL;
 const DOMParser = window.DOMParser;
 const Blob = window.Blob;
@@ -148,6 +159,32 @@ const util = {
         } else {
             return new URL(resourceURL, baseURI);
         }
+    }
+}
+
+function action(){
+    if (chrome) {
+        chrome.tabs.query({currentWindow: true, active: true}, function(tabs) {
+            var id = tabs[0].id;
+            chrome.tabs.executeScript(id, {
+                file: "/contentScript/pageScrapper.js"
+            }, function() {
+                console.log("Successfully injected");
+            });
+
+        });
+    } else {
+        browser.tabs.query({currentWindow: true, active: true})
+            .then((tabs) => {
+            var id = tabs[0].id;
+        browser.tabs.executeScript(id, {
+            file: "/contentScript/pageScrapper.js"
+        }).then( () => {
+            console.log("Successfully injected");
+    }).catch( (error) => {
+            console.error(error);
+    });
+    });
     }
 }
 

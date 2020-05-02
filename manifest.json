@@ -1,53 +1,38 @@
 {
-//    "browser_specific_settings": {
-//      "gecko": {
-////        "id": "myaddon@example.com",
-//        "strict_min_version": "57.0"
-//      }
-//    },
-    "manifest_version": 2,
-    "name": "markdown-saver",
-    "version": "1.0",
-    "author": "Ben",
-  
-    "description": "This extension works like a web clipper, but it downloads articles in a markdown format. Turndown and Readability.js are used as core libraries. It is not guaranteed to work with all websites.",
-  
-    "icons": {
-        "16": "/icons/favicon-16x16.png",
-        "32": "/icons/favicon-32x32.png",
-        "192": "/icons/favicon-192x192.png",
-        "512": "/icons/favicon-512x512.png"
-    },
-  
-    "permissions": [
-        "activeTab",
-        "tabs",
-        "downloads",
-        "storage"
-      ],
-    
-      "browser_action": {
-
-        "default_title": "markdown-clipper",
-        "default_popup": "popup/clipSite.html",
-        "default_icon": {
-            "16": "/icons/favicon-16x16.png",
-            "32": "/icons/favicon-32x32.png"
-          }
-    },
-
-    "background": {
-      "scripts": [
-        "background/turndown.js",
-        "background/Readability.js",
-        "background/background.js"
-      ]
-    },
-
-    "options_ui": { "page": "options/options.html",
-      "browser_style": true,
-      "chrome_style": true }
-
-
-  
+  "manifest_version": 2,
+  "name": "markdown-clipper",
+  "version": "1.0",
+  "author": "Enrico Kaack",
+  "description": "This extension works like a web clipper, but it downloads articles in a markdown format. Turndown and Readability.js are used as core libraries. It is not guaranteed to work with all websites.",
+  "icons": {
+    "16": "/icons/favicon-16x16.png",
+    "32": "/icons/favicon-32x32.png",
+    "192": "/icons/favicon-192x192.png",
+    "512": "/icons/favicon-512x512.png"
+  },
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "downloads",
+    "storage"
+  ],
+  "browser_action": {
+    "default_title": "markdown-clipper",
+    "default_icon": {
+      "16": "/icons/favicon-16x16.png",
+      "32": "/icons/favicon-32x32.png"
+    }
+  },
+  "background": {
+    "scripts": [
+      "background/turndown.js",
+      "background/turndown-plugin-gfm.js",
+      "background/Readability.js",
+      "background/background.js"
+    ]
+  },
+  "options_ui": { "page": "options/options.html",
+    "browser_style": true,
+    "chrome_style": true
   }
+}
