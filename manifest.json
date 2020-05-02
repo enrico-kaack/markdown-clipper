@@ -1,9 +1,14 @@
 {
-
+//    "browser_specific_settings": {
+//      "gecko": {
+////        "id": "myaddon@example.com",
+//        "strict_min_version": "57.0"
+//      }
+//    },
     "manifest_version": 2,
-    "name": "markdown-clipper",
+    "name": "markdown-saver",
     "version": "1.0",
-    "author": "Enrico Kaack",
+    "author": "Ben",
   
     "description": "This extension works like a web clipper, but it downloads articles in a markdown format. Turndown and Readability.js are used as core libraries. It is not guaranteed to work with all websites.",
   
@@ -17,11 +22,12 @@
     "permissions": [
         "activeTab",
         "tabs",
-        "downloads"
+        "downloads",
+        "storage"
       ],
     
       "browser_action": {
-        
+
         "default_title": "markdown-clipper",
         "default_popup": "popup/clipSite.html",
         "default_icon": {
@@ -31,8 +37,16 @@
     },
 
     "background": {
-        "scripts": ["background/turndown.js", "/background/Readability.js", "background/background.js"]
-    }
+      "scripts": [
+        "background/turndown.js",
+        "background/Readability.js",
+        "background/background.js"
+      ]
+    },
+
+    "options_ui": { "page": "options/options.html",
+      "browser_style": true,
+      "chrome_style": true }
 
 
   

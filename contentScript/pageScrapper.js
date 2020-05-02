@@ -8,4 +8,4 @@ function notifyExtension() {
       browser.runtime.sendMessage({"dom": content});
     }
   }
-  notifyExtension();
+notifyExtension();

@@ -7,7 +7,6 @@ if (chrome) {
           }, function() {
               console.log("Successfully injected");
           });
-        
     });
 } else {
     browser.tabs.query({currentWindow: true, active: true})
@@ -15,7 +14,7 @@ if (chrome) {
       var id = tabs[0].id;
       var url = tabs[0].url;
         browser.tabs.executeScript(id, {
-            file: "/contentScript/pageScrapper.js"
+            file: "/contentScript/pageScraper.js"
         }),then( () => {
             console.log("Successfully injected");
         }).catch( (error) => {
@@ -23,4 +22,5 @@ if (chrome) {
         });
       });
 }
+
 
