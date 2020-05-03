@@ -45,7 +45,7 @@ function generateValidFileName(title) {
     return name;
 }
 
-async function downloadMarkdown(markdown, article, filenameTemplate, sourceUrl) {
+async function downloadMarkdown(markdown, article, useTemplate, filenameTemplate, sourceUrl) {
   var blob = new Blob([markdown], {
     type: "text/markdown;charset=utf-8"
   });
@@ -95,7 +95,7 @@ async function downloadMarkdown(markdown, article, filenameTemplate, sourceUrl) 
       url: url,
       filename: legalFilename,
       // filename:generateValidFileName(article.title) + ".md",
-      saveAs: false
+      saveAs: !useTemplate
     }, function(id) {
       chrome.downloads.onChanged.addListener((delta ) => {
         //release the url for the blob
@@ -109,10 +109,10 @@ async function downloadMarkdown(markdown, article, filenameTemplate, sourceUrl) 
   }else {
     browser.downloads.download({
       url: url,
-      filename: ProcessorHelper.evalTemplate(filenameTemplate, this.options),
+      filename: legalFilename,
         // filename:generateValidFileName(article.title) + ".md",
       // article.title) + ".md",incognito: true,
-      saveAs: false
+      saveAs: !useTemplate
     }).then((id) => {
       browser.downloads.onChanged.addListener((delta ) => {
         //release the url for the blob
@@ -142,11 +142,14 @@ function notify(message) {
   var article = createReadableVersion(dom);
   var markdown = convertArticleToMarkdown(article, message.source);
   function runDownloadMarkdown(storedSettings) {
-      defaultSettings = {filenameTemplate: "archives/{url-hostname}/{page-title}_({date-iso}_{time-locale}).md"}
+      defaultSettings = {
+          filenameTemplate: "archives/{url-hostname}/{page-title}_({date-iso}_{time-locale}).md",
+          useTemplate: true
+      }
       if (!storedSettings.filenameTemplate || !storedSettings.dataTypes) {
           browser.storage.local.set(defaultSettings);
       }
-      downloadMarkdown(markdown, article, storedSettings.filenameTemplate, message.source);
+      downloadMarkdown(markdown, article, storedSettings.useTemplate, storedSettings.filenameTemplate, message.source);
   }
   const gettingStoredSettings = browser.storage.local.get();
   gettingStoredSettings.then(runDownloadMarkdown, onError);

@@ -39,27 +39,25 @@ console.log('in the options.js file in markdown-saver...1')
  */
 function storeSettings() {
 
-    function getSince() {
-        const since = document.querySelector("#color");
-        return since.value;
+    // function getSaveImages() {
+    //     const saveImages = document.querySelector("#save-images");
+    //     return saveImages.checked;
+    // }
+    function getUseTemplate() {
+        const useTemplate = document.querySelector("#use-template");
+        return useTemplate.checked;
     }
     function getFilenameTemplate() {
         const filenameTemplate = document.querySelector("#filename-template");
         return filenameTemplate.value;
     }
-    function getSaveImages() {
-        const saveImages = document.querySelector("#save-images");
-        return saveImages.checked;
-    }
-    const saveImages = getSaveImages();
+    // const saveImages = getSaveImages();
+    const useTemplate = getUseTemplate();
     const filenameTemplate = getFilenameTemplate();
-    // const dataTypes = getTypes();
-    console.log('saving saveImages: ', saveImages)
     browser.storage.local.set({
-        filenameTemplate,
-        saveImages
-
-        // dataTypes
+        // saveImages,
+        useTemplate,
+        filenameTemplate
     });
 }
 
@@ -69,17 +67,13 @@ function storeSettings() {
  */
 function restoreOptions(restoredSettings) {
 
-    console.log('in the updateUI function')
-    // console.log('restoredSettings: ', restoredSettings)
-    // console.log('restoredSettings.saveImages: ', restoredSettings.saveImages)
-    // console.log('doc querysel save images: ', document.querySelector("#save-images"))
-    // console.log('doc querysel filename-template: ', document.querySelector("#filename-template"))
-    // console.log(document.querySelector("#filename-template-show"));
-    console.log('in the updateUI function')
+    // TODO: add save images functionality
+    // document.querySelector("#save-images-show").innerText = restoredSettings.saveImages || false;
+    // document.querySelector("#save-images").checked = restoredSettings.saveImages || false;
+    document.querySelector("#use-template-show").innerText = restoredSettings.useTemplate || false;
+    document.querySelector("#use-template").checked = restoredSettings.useTemplate || false;
     document.querySelector("#filename-template-show").innerText = restoredSettings.filenameTemplate || 'filename.md';
     document.querySelector("#filename-template").value = restoredSettings.filenameTemplate || 'filename.md';
-    document.querySelector("#save-images-show").innerText = restoredSettings.saveImages || false;
-    document.querySelector("#save-images").checked = restoredSettings.saveImages || false;
     // const selectList = document.querySelector("#since");
     // selectList.value = restoredSettings.since;
     //

@@ -20,18 +20,21 @@
 <!--</form>-->
 <!--<p>color: <b id="colorshow">no value found</b></p>-->
 <!--<div id="colorshow"></div>-->
+<!--<div id="save-images-show"></div>-->
+<div id="use-template-show"></div>
 <div id="filename-template-show"></div>
-<div id="save-images-show"></div>
 <form>
-    <!--<label>Favorite color</label>-->
-    <!--<input type="text" id="color" >-->
+    <!--<div>-->
+        <!--<input type="checkbox" id="save-images" />-->
+        <!--<label for="save-images">Save images</label>-->
+    <!--</div>-->
     <div>
-        <label>Filename / File path (including markdown extension)</label>
-        <input type="text" id="filename-template" />
+        <input type="checkbox" id="use-template" />
+        <label for="use-template">Use template (if unchecked, specify filename manually on each save)</label>
     </div>
     <div>
-        <label>Save images</label>
-        <input type="checkbox" id="save-images" />
+        <label for="filename-template">Filename / File path (including markdown extension)</label>
+        <input type="text" id="filename-template" />
     </div>
     <button type="submit">Save</button>
 </form>
