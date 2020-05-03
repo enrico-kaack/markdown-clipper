@@ -45,7 +45,7 @@ function generateValidFileName(title) {
     return name;
 }
 
-function downloadMarkdown(markdown, article, filenameTemplate) {
+async function downloadMarkdown(markdown, article, filenameTemplate, sourceUrl) {
   var blob = new Blob([markdown], {
     type: "text/markdown;charset=utf-8"
   });
@@ -73,7 +73,8 @@ function downloadMarkdown(markdown, article, filenameTemplate) {
         //tabIndex
       options = {
           title: article.title,
-          saveUrl: url,
+          saveUrl: sourceUrl,
+          saveDate: new Date(),
           info: {
               heading: article.excerpt,
               lang: '',
@@ -82,10 +83,17 @@ function downloadMarkdown(markdown, article, filenameTemplate) {
               publisher: article.siteName
           }
       };
-      console.log(url)
-      console.log(ProcessorHelper.evalTemplate(filenameTemplate, options))chrome.downloads.download({
+      console.log(url);
+      console.log('ProcessorHelper.evalTemplate(): ', ProcessorHelper.evalTemplate(filenameTemplate, options));
+      let filename = await ProcessorHelper.evalTemplate(filenameTemplate, options) || '';
+      let filenameConflictAction = "uniquify";
+      let filenameMaxLength = 192;
+      let filenameReplacedCharacters = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
+      let replacementCharacter = '_';
+      let legalFilename = util.getValidFilename(filename, filenameReplacedCharacters, replacementCharacter);
+    chrome.downloads.download({
       url: url,
-      filename: ProcessorHelper.evalTemplate(filenameTemplate, options),
+      filename: legalFilename,
       // filename:generateValidFileName(article.title) + ".md",
       saveAs: false
     }, function(id) {
@@ -138,7 +146,7 @@ function notify(message) {
       if (!storedSettings.filenameTemplate || !storedSettings.dataTypes) {
           browser.storage.local.set(defaultSettings);
       }
-      downloadMarkdown(markdown, article, filenameTemplate);
+      downloadMarkdown(markdown, article, storedSettings.filenameTemplate, message.source);
   }
   const gettingStoredSettings = browser.storage.local.get();
   gettingStoredSettings.then(runDownloadMarkdown, onError);
@@ -159,7 +167,114 @@ const util = {
         } else {
             return new URL(resourceURL, baseURI);
         }
-    }
+    },
+    resolveURL(resourceURL, baseURI) {
+        return this.parseURL(resourceURL, baseURI).href;
+    },
+    getValidFilename(filename, replacedCharacters = DEFAULT_REPLACED_CHARACTERS, replacementCharacter = DEFAULT_REPLACEMENT_CHARACTER) {
+        replacedCharacters.forEach(replacedCharacter => filename = filename.replace(new RegExp("[" + replacedCharacter + "]+", "g"), replacementCharacter));
+        filename = filename
+            .replace(/\.\.\//g, "")
+            .replace(/^\/+/, "")
+            .replace(/\/+/g, "/")
+            .replace(/\/$/, "")
+            .replace(/\.$/, "")
+            .replace(/\.\//g, "." + replacementCharacter)
+            .replace(/\/\./g, "/" + replacementCharacter);
+        return filename;
+    },
+    parseDocContent(content, baseURI) {
+        const doc = (new DOMParser()).parseFromString(content, "text/html");
+        if (!doc.head) {
+            doc.documentElement.insertBefore(doc.createElement("HEAD"), doc.body);
+        }
+        let baseElement = doc.querySelector("base");
+        if (!baseElement || !baseElement.getAttribute("href")) {
+            if (baseElement) {
+                baseElement.remove();
+            }
+            baseElement = doc.createElement("base");
+            baseElement.setAttribute("href", baseURI);
+            doc.head.insertBefore(baseElement, doc.head.firstChild);
+        }
+        return doc;
+    },
+    parseXMLContent(content) {
+        return (new DOMParser()).parseFromString(content, "text/xml");
+    },
+    parseSVGContent(content) {
+        return (new DOMParser()).parseFromString(content, "image/svg+xml");
+    },
+    async digest(algo, text) {
+        try {
+            const hash = await crypto.subtle.digest(algo, new TextEncoder("utf-8").encode(text));
+            return hex(hash);
+        } catch (error) {
+            return "";
+        }
+    },
+    getContentSize(content) {
+        return new Blob([content]).size;
+    },
+    truncateText(content, maxSize) {
+        const blob = new Blob([content]);
+        const reader = new FileReader();
+        reader.readAsText(blob.slice(0, maxSize));
+        return new Promise((resolve, reject) => {
+            reader.addEventListener("load", () => {
+                if (content.startsWith(reader.result)) {
+                    resolve(reader.result);
+                } else {
+                    this.truncateText(content, maxSize - 1).then(resolve).catch(reject);
+                }
+            }, false);
+            reader.addEventListener("error", reject, false);
+        });
+    },
+    minifyHTML(doc, options) {
+        return modules.htmlMinifier.process(doc, options);
+    },
+    minifyCSSRules(stylesheets, styles, mediaAllInfo) {
+        return modules.cssRulesMinifier.process(stylesheets, styles, mediaAllInfo);
+    },
+    removeUnusedFonts(doc, stylesheets, styles, options) {
+        return modules.fontsMinifier.process(doc, stylesheets, styles, options);
+    },
+    removeAlternativeFonts(doc, stylesheets, fontURLs) {
+        return modules.fontsAltMinifier.process(doc, stylesheets, fontURLs);
+    },
+    getMediaAllInfo(doc, stylesheets, styles) {
+        return modules.matchedRules.getMediaAllInfo(doc, stylesheets, styles);
+    },
+    compressCSS(content, options) {
+        return vendor.cssMinifier.processString(content, options);
+    },
+    minifyMedias(stylesheets) {
+        return modules.mediasAltMinifier.process(stylesheets);
+    },
+    removeAlternativeImages(doc) {
+        return modules.imagesAltMinifier.process(doc);
+    },
+    parseSrcset(srcset) {
+        return vendor.srcsetParser.process(srcset);
+    },
+    preProcessDoc(doc, win, options) {
+        return helper.preProcessDoc(doc, win, options);
+    },
+    postProcessDoc(doc, markedElements) {
+        helper.postProcessDoc(doc, markedElements);
+    },
+    serialize(doc, compressHTML) {
+        return modules.serializer.process(doc, compressHTML);
+    },
+    removeQuotes(string) {
+        return helper.removeQuotes(string);
+    },
+    waitForUserScript(eventPrefixName) {
+        if (helper.waitForUserScript) {
+            return helper.waitForUserScript(eventPrefixName);
+        }
+    },
 }
 
 function action(){
@@ -1213,7 +1328,9 @@ class ProcessorHelper {
     static async evalTemplate(template = "", options, content, dontReplaceSlash) {
         console.log('evaluating template, starting template: ', template)
         const date = options.saveDate;
+        console.log('options.saveUrl: ', options.saveUrl)
         const url = util.parseURL(options.saveUrl);
+        console.log('parsed URL: ', url)
         template = await evalTemplateVariable(template, "page-title", () => options.title || "No title", dontReplaceSlash, options.filenameReplacementCharacter);
         console.log('evaluating template after page-title: ', template)
         template = await evalTemplateVariable(template, "page-heading", () => options.info.heading || "No heading", dontReplaceSlash, options.filenameReplacementCharacter);
