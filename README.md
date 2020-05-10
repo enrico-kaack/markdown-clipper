@@ -13,5 +13,8 @@ The plugin is available for [Firefox](https://addons.mozilla.org/de/firefox/addo
 - Access tabs: used to access the website content when the icon in the browser bar is clicked.
 - Manage Downloads: neccessary to be able to download the markdown file.
 
+# Thanks
+- [SingleFile](https://github.com/gildas-lormeau/SingleFile) and Gildas Lormeau for the templating code.
+
 --- 
 The icon was created using [Favicon.io](https://favicon.io)

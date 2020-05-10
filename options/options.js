@@ -47,16 +47,22 @@ function storeSettings() {
         const useTemplate = document.querySelector("#use-template");
         return useTemplate.checked;
     }
+    function getFilePathTemplate() {
+        const filePathTemplate = document.querySelector("#file-path-template");
+        return filePathTemplate.value;
+    }
     function getFilenameTemplate() {
         const filenameTemplate = document.querySelector("#filename-template");
         return filenameTemplate.value;
     }
     // const saveImages = getSaveImages();
     const useTemplate = getUseTemplate();
+    const filePathTemplate = getFilePathTemplate();
     const filenameTemplate = getFilenameTemplate();
     browser.storage.local.set({
         // saveImages,
         useTemplate,
+        filePathTemplate,
         filenameTemplate
     });
 }
@@ -72,6 +78,8 @@ function restoreOptions(restoredSettings) {
     // document.querySelector("#save-images").checked = restoredSettings.saveImages || false;
     document.querySelector("#use-template-show").innerText = restoredSettings.useTemplate || false;
     document.querySelector("#use-template").checked = restoredSettings.useTemplate || false;
+    document.querySelector("#file-path-template-show").innerText = restoredSettings.filePathTemplate || 'markdown-clipper/';
+    document.querySelector("#file-path-template").value = restoredSettings.filePathTemplate || 'markdown-clipper/';
     document.querySelector("#filename-template-show").innerText = restoredSettings.filenameTemplate || 'filename.md';
     document.querySelector("#filename-template").value = restoredSettings.filenameTemplate || 'filename.md';
     // const selectList = document.querySelector("#since");

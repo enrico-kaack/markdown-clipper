@@ -83,6 +83,28 @@ async function downloadMarkdown(markdown, article, useTemplate, filenameTemplate
               publisher: article.siteName
           }
       };
+      let filePath = await ProcessorHelper.evalTemplate(filePathTemplate, options) || '';
+      let filenameMaxLength = 192;
+      let filenameReplacedCharacters = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
+      let replacementCharacter = '_';
+      let legalFilePath = util.getValidFilename(filePath, filenameReplacedCharacters, replacementCharacter);
+      var oParser = new DOMParser();
+      var oDOM = oParser.parseFromString(article.content, "text/html");
+      const images = oDOM.querySelectorAll('img')
+      images.forEach(img => console.log(JSON.stringify(img.src)))
+      images.forEach(async function(img) {
+          const imageFilename = new URL(img.src).pathname.split('/').pop()
+          let filename = await ProcessorHelper.evalTemplate(filenameTemplate, options) || '';
+          let filenameConflictAction = "uniquify";
+          let filenameMaxLength = 192;
+          let filenameReplacedCharacters = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
+          let replacementCharacter = '_';
+          let legalFilename = util.getValidFilename(filename, filenameReplacedCharacters, replacementCharacter);
+          chrome.downloads.download({
+              url: img.src,
+              filename: imageFilename,
+              saveAs: false })})
+      // oDOM.querySelectorAll('img').forEach(img => console.log(img))
       console.log(url);
       console.log('ProcessorHelper.evalTemplate(): ', ProcessorHelper.evalTemplate(filenameTemplate, options));
       let filename = await ProcessorHelper.evalTemplate(filenameTemplate, options) || '';
@@ -96,7 +118,7 @@ async function downloadMarkdown(markdown, article, useTemplate, filenameTemplate
       filename: legalFilename,
       // filename:generateValidFileName(article.title) + ".md",
       saveAs: !useTemplate
-    }, function(id) {
+    },function(id) {
       chrome.downloads.onChanged.addListener((delta ) => {
         //release the url for the blob
         if (delta.state && delta.state.current === "complete") {
@@ -106,6 +128,12 @@ async function downloadMarkdown(markdown, article, useTemplate, filenameTemplate
         }
       });
     });
+      // function(){
+
+        // get images
+        // console.log(article.querySelectorAll('img'))
+        // save images
+
   }else {
     browser.downloads.download({
       url: url,
@@ -143,7 +171,8 @@ function notify(message) {
   var markdown = convertArticleToMarkdown(article, message.source);
   function runDownloadMarkdown(storedSettings) {
       defaultSettings = {
-          filenameTemplate: "archives/{url-hostname}/{page-title}_({date-iso}_{time-locale}).md",
+          filePathTemplate: "archives/{url-hostname}/",
+          filenameTemplate: "{page-title}_({date-iso}_{time-locale}).md",
           useTemplate: true
       }
       if (!storedSettings.filenameTemplate || !storedSettings.dataTypes) {

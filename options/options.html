@@ -22,6 +22,7 @@
 <!--<div id="colorshow"></div>-->
 <!--<div id="save-images-show"></div>-->
 <div id="use-template-show"></div>
+<div id="file-path-template-show"></div>
 <div id="filename-template-show"></div>
 <form>
     <!--<div>-->
@@ -33,7 +34,11 @@
         <label for="use-template">Use template (if unchecked, specify filename manually on each save)</label>
     </div>
     <div>
-        <label for="filename-template">Filename / File path (including markdown extension)</label>
+        <label for="file-path-template">File path</label>
+        <input type="text" id="file-path-template" />
+    </div>
+    <div>
+        <label for="filename-template">Filename (including markdown extension)</label>
         <input type="text" id="filename-template" />
     </div>
     <button type="submit">Save</button>
