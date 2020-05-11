@@ -44,8 +44,7 @@ function generateValidFileName(title) {
     var name = title.replace(illegalRe, "");
     return name;
 }
-
-async function downloadMarkdown(markdown, article, useTemplate, filenameTemplate, sourceUrl) {
+async function downloadMarkdown(markdown, article, useTemplate, filePathTemplate, filenameTemplate, sourceUrl) {
   var blob = new Blob([markdown], {
     type: "text/markdown;charset=utf-8"
   });
@@ -83,35 +82,32 @@ async function downloadMarkdown(markdown, article, useTemplate, filenameTemplate
               publisher: article.siteName
           }
       };
-      let filePath = await ProcessorHelper.evalTemplate(filePathTemplate, options) || '';
       let filenameMaxLength = 192;
       let filenameReplacedCharacters = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
       let replacementCharacter = '_';
+
+      let filePath = await ProcessorHelper.evalTemplate(filePathTemplate, options) || '';
       let legalFilePath = util.getValidFilename(filePath, filenameReplacedCharacters, replacementCharacter);
+      console.log('legalFilePath: ', legalFilePath)
+
+
       var oParser = new DOMParser();
       var oDOM = oParser.parseFromString(article.content, "text/html");
       const images = oDOM.querySelectorAll('img')
       images.forEach(img => console.log(JSON.stringify(img.src)))
       images.forEach(async function(img) {
           const imageFilename = new URL(img.src).pathname.split('/').pop()
-          let filename = await ProcessorHelper.evalTemplate(filenameTemplate, options) || '';
-          let filenameConflictAction = "uniquify";
-          let filenameMaxLength = 192;
-          let filenameReplacedCharacters = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
-          let replacementCharacter = '_';
-          let legalFilename = util.getValidFilename(filename, filenameReplacedCharacters, replacementCharacter);
+          let legalFilename = util.getValidFilename(legalFilePath + imageFilename, filenameReplacedCharacters, replacementCharacter);
+          console.log('legalFilename: ', legalFilename)
           chrome.downloads.download({
               url: img.src,
               filename: imageFilename,
-              saveAs: false })})
+              saveAs: false })});
       // oDOM.querySelectorAll('img').forEach(img => console.log(img))
       console.log(url);
       console.log('ProcessorHelper.evalTemplate(): ', ProcessorHelper.evalTemplate(filenameTemplate, options));
       let filename = await ProcessorHelper.evalTemplate(filenameTemplate, options) || '';
       let filenameConflictAction = "uniquify";
-      let filenameMaxLength = 192;
-      let filenameReplacedCharacters = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
-      let replacementCharacter = '_';
       let legalFilename = util.getValidFilename(filename, filenameReplacedCharacters, replacementCharacter);
     chrome.downloads.download({
       url: url,
@@ -178,7 +174,7 @@ function notify(message) {
       if (!storedSettings.filenameTemplate || !storedSettings.dataTypes) {
           browser.storage.local.set(defaultSettings);
       }
-      downloadMarkdown(markdown, article, storedSettings.useTemplate, storedSettings.filenameTemplate, message.source);
+      downloadMarkdown(markdown, article, storedSettings.useTemplate, storedSettings.filePathTemplate, storedSettings.filenameTemplate, message.source);
   }
   const gettingStoredSettings = browser.storage.local.get();
   gettingStoredSettings.then(runDownloadMarkdown, onError);
