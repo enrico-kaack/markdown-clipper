@@ -20,26 +20,28 @@
 <!--</form>-->
 <!--<p>color: <b id="colorshow">no value found</b></p>-->
 <!--<div id="colorshow"></div>-->
+<!--<div id="use-template-show"></div>-->
 <!--<div id="save-images-show"></div>-->
-<div id="use-template-show"></div>
-<div id="file-path-template-show"></div>
-<div id="filename-template-show"></div>
+<!--<div id="path-template-show"></div>-->
+<!--<div id="filename-template-show"></div>-->
 <form>
-    <!--<div>-->
-        <!--<input type="checkbox" id="save-images" />-->
-        <!--<label for="save-images">Save images</label>-->
-    <!--</div>-->
     <div>
         <input type="checkbox" id="use-template" />
-        <label for="use-template">Use template (if unchecked, specify filename manually on each save)</label>
+        <label for="use-template">Use path and filename template</label><br/>
+        <em>(instead of Save As prompt on every download)</em><br/><br/>
     </div>
     <div>
-        <label for="file-path-template">File path</label>
-        <input type="text" id="file-path-template" />
+        <input type="checkbox" id="save-images" />
+        <label for="save-images">Save images</label><br/>
+        <em>(images are written using original filenames to Path Template; otherwise the markdown file will contain links to the images' original location on the internet)</em><br/><br/>
     </div>
     <div>
-        <label for="filename-template">Filename (including markdown extension)</label>
-        <input type="text" id="filename-template" />
+        <label for="path-template">File path:</label><br/>
+        <input type="text" id="path-template" /><br/><br/>
+    </div>
+    <div>
+        <label for="filename-template">Filename (including markdown extension)</label><br/>
+        <input type="text" id="filename-template" /><br/><br/>
     </div>
     <button type="submit">Save</button>
 </form>
