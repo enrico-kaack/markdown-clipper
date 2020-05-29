@@ -45,7 +45,8 @@ function generateValidFileName(title) {
     return name;
 }
 
-async function downloadMarkdown(markdown, article, useTemplate, pathTemplate, filenameTemplate, sourceUrl) {
+async function downloadMarkdown(markdown, article, options) {
+
   var blob = new Blob([markdown], {
     type: "text/markdown;charset=utf-8"
   });
@@ -71,62 +72,27 @@ async function downloadMarkdown(markdown, article, useTemplate, pathTemplate, fi
         //saveUrl
         //tabId
         //tabIndex
-      options = {
-          title: article.title,
-          saveUrl: sourceUrl,
-          saveDate: new Date(),
-          info: {
-              heading: article.excerpt,
-              lang: '',
-              author: article.byline,
-              creator: '',
-              publisher: article.siteName
-          }
-      };
-      let filenameMaxLength = 192;
-      let filenameReplacedCharacters = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
-      let replacementCharacter = '_';
-      options.filenameReplacedCharacters = filenameReplacedCharacters;
-      options.replacementCharacter = replacementCharacter;
 
-      let downloadPath = await ProcessorHelper.evalTemplate(pathTemplate, options) || '';
-      let legalFilePath = util.getValidFilename(downloadPath, filenameReplacedCharacters, replacementCharacter);
+      // let newArticleContent = article.content
+      // let images = readDOM.querySelectorAll('img');
+      // images.forEach(async function(img) {
+      //     const imageFilename = new URL(img.websrc).pathname.split('/').pop();
+      //     let legalImageFilename = util.getValidFilename(imageFilename, filenameReplacedCharacters, replacementCharacter);
+      //     let legalImageFullPath = util.getValidFilename(downloadPath + imageFilename, filenameReplacedCharacters, replacementCharacter);
+      //     chrome.downloads.download({
+      //         url: img.websrc,
+      //         filename: legalImageFullPath,
+      //         saveAs: false })
+      //
+      //     img.setAttribute('src',legalImageFullPath);
+      //
+      //     // NOTE: the img.setAttribute statement above should work but this is a messier alternative that I got working first
+      //     // newArticleContent = newArticleContent.replace(img.src, './' + imageFilename)
+      // });
 
-      let oParser = new DOMParser();
-      let oDOM = oParser.parseFromString(article.content, "text/html");
-      // let oDOM = oParser.parseFromString('<html><head></head><body>' + article.content + '</body></html>', "text/html");
-      let newArticleContent = article.content
-      // console.log('article.content: ', JSON.stringify(article.content));
-      // console.log('oDOM', oDOM.documentElement.outerHTML);
-      // let baseElement = document.createElement('base')
-      // baseElement.setAttribute('href','file://replace_this_string_3h9v9FJ2')
-
-      // oDOM.querySelector('head').appendChild(baseElement)
-      // console.log('oDOM', oDOM.documentElement.outerHTML);
-      let images = oDOM.querySelectorAll('img');
-      images.forEach(async function(img) {
-          const imageFilename = new URL(img.src).pathname.split('/').pop();
-          let legalImageFilename = util.getValidFilename(imageFilename, filenameReplacedCharacters, replacementCharacter);
-          let legalImageFullPath = util.getValidFilename(downloadPath + imageFilename, filenameReplacedCharacters, replacementCharacter);
-          chrome.downloads.download({
-              url: img.src,
-              filename: legalImageFullPath,
-              saveAs: false })
-
-          img.setAttribute('src',legalImageFullPath);
-
-          // NOTE: the img.setAttribute statement above should work but this is a messier alternative that I got working first
-          // newArticleContent = newArticleContent.replace(img.src, './' + imageFilename)
-      });
-      console.log(JSON.stringify(images));
-      console.log(oDOM.querySelector('html').outerHTML);
-
-      // oDOM.querySelectorAll('img').forEach(img => console.log(img))
-      // console.log(url);
-      // console.log('ProcessorHelper.evalTemplate(): ', ProcessorHelper.evalTemplate(filenameTemplate, options));
       let filename = await ProcessorHelper.evalTemplate(filenameTemplate, options) || '';
       let filenameConflictAction = "uniquify";
-      let legalFullPath = util.getValidFilename(downloadPath + filename, filenameReplacedCharacters, replacementCharacter);
+      let legalFullPath = util.getValidFilename(options.downloadPath + filename, options.filenameReplacedCharacters, options.replacementCharacter);
     chrome.downloads.download({
       url: url,
       filename: legalFullPath,
@@ -142,11 +108,6 @@ async function downloadMarkdown(markdown, article, useTemplate, pathTemplate, fi
         }
       });
     });
-      // function(){
-
-        // get images
-        // console.log(article.querySelectorAll('img'))
-        // save images
 
   }else {
     browser.downloads.download({
@@ -170,32 +131,98 @@ async function downloadMarkdown(markdown, article, useTemplate, pathTemplate, fi
   }
 }
 
-function runDownloadMarkdown(storedSettings) {
-    defaultSettings = {
-        pathTemplate: "archives/{url-hostname}/",
-        filenameTemplate: "{page-title}_({date-iso}_{time-locale}).md",
-        useTemplate: true
-    }
-    if (!storedSettings.filenameTemplate || !storedSettings.dataTypes) {
-        browser.storage.local.set(defaultSettings);
-    }
-    downloadMarkdown(markdown, article, storedSettings.useTemplate, storedSettings.pathTemplate, storedSettings.filenameTemplate, message.source);
+function getStoredSettings() {
+    return browser.storage.local.get()
+        .then(function(storedSettings) {
+            defaultSettings = {
+                pathTemplate: "archives/{url-hostname}/",
+                filenameTemplate: "{page-title}_({date-iso}_{time-locale}).md",
+                useTemplate: true
+            };
+            if (!storedSettings.filenameTemplate || !storedSettings.dataTypes) {
+                browser.storage.local.set(defaultSettings);
+            }
+            return storedSettings || defaultSettings
+        })
+}
+
+function downloadAndLocalifyImages(readDOM, filenameReplacedCharacters, replacementCharacters) {
+// let newArticleContent = article.content
+    let images = readDOM.querySelectorAll('img');
+    images.forEach(async function (img) {
+        const imageFilename = new URL(img.src).pathname.split('/').pop();
+        let filenameReplacedCharacters = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
+        let replacementCharacter = '_';
+        let legalImageFilename = util.getValidFilename(imageFilename, filenameReplacedCharacters, replacementCharacter);
+        let legalImageFullPath = util.getValidFilename(downloadPath + imageFilename, filenameReplacedCharacters, replacementCharacter);
+        chrome.downloads.download({
+            url: img.src,
+            filename: legalImageFullPath,
+            saveAs: false
+        })
+
+        img.setAttribute('src', legalImageFullPath);
+
+        // NOTE: the img.setAttribute statement above should work but this is a messier alternative that I got working first
+        // newArticleContent = newArticleContent.replace(img.src, './' + imageFilename)
+    });
+
+    return readDOM
 }
 
 
 //function that handles messages from the injected script into the site
 function notify(message) {
-    var parser = new DOMParser();
-    var dom = parser.parseFromString(message.dom, "text/html");
+    const parser = new DOMParser();
+    const dom = parser.parseFromString(message.dom, "text/html");
     if (dom.documentElement.nodeName === "parsererror") {
         console.error("error while parsing");
     }
 
-  var article = createReadableVersion(dom);
-  var markdown = convertArticleToMarkdown(article, message.source);
-  const gettingStoredSettings = browser.storage.local.get();
-  gettingStoredSettings.then(runDownloadMarkdown, onError);
+    let article = createReadableVersion(dom);
+    getStoredSettings()
+        .then(storedSettings => {
+            let options = {
+                useTemplate: storedSettings.useTemplate,
+                pathTemplate: storedSettings.pathTemplate,
+                filenameTemplate: storedSettings.filenameTemplate,
+                title: article.title,
+                saveUrl: message.source,
+                saveDate: new Date(),
+                info: {
+                    heading: article.excerpt,
+                    // lang: '',
+                    author: article.byline,
+                    // creator: '',
+                    publisher: article.siteName
+                },
+                filenameMaxLength: 192,
+                filenameReplacedCharacters: ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"],
+                replacementCharacter: '_'
+            };
+
+            // NOTE THIS HSOULD BE await ProcessorHelper...
+            let downloadPath = ProcessorHelper.evalTemplate(pathTemplate, options) || '';
+
+            let legalFilePath = util.getValidFilename(downloadPath, options.filenameReplacedCharacters, options.replacementCharacter);
+
+            let images = []
+            if(storedSettings.saveImages) {
+                let readDOM = downloadAndLocalifyImages(readDOM=parser.parseFromString(article.content, "text/html"),
+                options)
+                // console.log(article.content)
+                // console.log(readDOM.querySelector('body').innerHTML)
+                article.content = readDOM.querySelector('body').innerHTML;
+            }
+            const markdown = convertArticleToMarkdown(article, message.source);
+            downloadMarkdown(markdown, article, options)},
+                onError
+        );
 }
+
+
+
+
 
 const DEFAULT_REPLACED_CHARACTERS = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
 const DEFAULT_REPLACEMENT_CHARACTER = "_";
@@ -1338,10 +1365,10 @@ class ProcessorHelper {
         template = await evalTemplateVariable(template, "page-title", () => options.title || "No title", dontReplaceSlash, options.filenameReplacementCharacter);
         console.log('evaluating template after page-title: ', template)
         template = await evalTemplateVariable(template, "page-heading", () => options.info.heading || "No heading", dontReplaceSlash, options.filenameReplacementCharacter);
-        template = await evalTemplateVariable(template, "page-language", () => options.info.lang || "No language", dontReplaceSlash, options.filenameReplacementCharacter);
+        // template = await evalTemplateVariable(template, "page-language", () => options.info.lang || "No language", dontReplaceSlash, options.filenameReplacementCharacter);
         template = await evalTemplateVariable(template, "page-description", () => options.info.description || "No description", dontReplaceSlash, options.filenameReplacementCharacter);
         template = await evalTemplateVariable(template, "page-author", () => options.info.author || "No author", dontReplaceSlash, options.filenameReplacementCharacter);
-        template = await evalTemplateVariable(template, "page-creator", () => options.info.creator || "No creator", dontReplaceSlash, options.filenameReplacementCharacter);
+        // template = await evalTemplateVariable(template, "page-creator", () => options.info.creator || "No creator", dontReplaceSlash, options.filenameReplacementCharacter);
         template = await evalTemplateVariable(template, "page-publisher", () => options.info.publisher || "No publisher", dontReplaceSlash, options.filenameReplacementCharacter);
         template = await evalTemplateVariable(template, "datetime-iso", () => date.toISOString(), dontReplaceSlash, options.filenameReplacementCharacter);
         template = await evalTemplateVariable(template, "date-iso", () => date.toISOString().split("T")[0], dontReplaceSlash, options.filenameReplacementCharacter);
