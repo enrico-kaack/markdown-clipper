@@ -17,9 +17,9 @@ function createReadableVersion(dom) {
 }
 
 function convertArticleToMarkdown(article, source) {
-    var turndownService = new TurndownService()
-    var gfm = turndownPluginGfm.gfm
-    turndownService.use(gfm)
+    var turndownService = new TurndownService();
+    var gfm = turndownPluginGfm.gfm;
+    turndownService.use(gfm);
     var markdown = turndownService.turndown(article.content);
 
     //add summary if exist
@@ -44,7 +44,8 @@ function generateValidFileName(title) {
     var name = title.replace(illegalRe, "");
     return name;
 }
-async function downloadMarkdown(markdown, article, useTemplate, filePathTemplate, filenameTemplate, sourceUrl) {
+
+async function downloadMarkdown(markdown, article, useTemplate, pathTemplate, filenameTemplate, sourceUrl) {
   var blob = new Blob([markdown], {
     type: "text/markdown;charset=utf-8"
   });
@@ -85,33 +86,50 @@ async function downloadMarkdown(markdown, article, useTemplate, filePathTemplate
       let filenameMaxLength = 192;
       let filenameReplacedCharacters = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
       let replacementCharacter = '_';
+      options.filenameReplacedCharacters = filenameReplacedCharacters;
+      options.replacementCharacter = replacementCharacter;
 
-      let filePath = await ProcessorHelper.evalTemplate(filePathTemplate, options) || '';
-      let legalFilePath = util.getValidFilename(filePath, filenameReplacedCharacters, replacementCharacter);
-      console.log('legalFilePath: ', legalFilePath)
+      let downloadPath = await ProcessorHelper.evalTemplate(pathTemplate, options) || '';
+      let legalFilePath = util.getValidFilename(downloadPath, filenameReplacedCharacters, replacementCharacter);
 
+      let oParser = new DOMParser();
+      let oDOM = oParser.parseFromString(article.content, "text/html");
+      // let oDOM = oParser.parseFromString('<html><head></head><body>' + article.content + '</body></html>', "text/html");
+      let newArticleContent = article.content
+      // console.log('article.content: ', JSON.stringify(article.content));
+      // console.log('oDOM', oDOM.documentElement.outerHTML);
+      // let baseElement = document.createElement('base')
+      // baseElement.setAttribute('href','file://replace_this_string_3h9v9FJ2')
 
-      var oParser = new DOMParser();
-      var oDOM = oParser.parseFromString(article.content, "text/html");
-      const images = oDOM.querySelectorAll('img')
-      images.forEach(img => console.log(JSON.stringify(img.src)))
+      // oDOM.querySelector('head').appendChild(baseElement)
+      // console.log('oDOM', oDOM.documentElement.outerHTML);
+      let images = oDOM.querySelectorAll('img');
       images.forEach(async function(img) {
-          const imageFilename = new URL(img.src).pathname.split('/').pop()
-          let legalFilename = util.getValidFilename(legalFilePath + imageFilename, filenameReplacedCharacters, replacementCharacter);
-          console.log('legalFilename: ', legalFilename)
+          const imageFilename = new URL(img.src).pathname.split('/').pop();
+          let legalImageFilename = util.getValidFilename(imageFilename, filenameReplacedCharacters, replacementCharacter);
+          let legalImageFullPath = util.getValidFilename(downloadPath + imageFilename, filenameReplacedCharacters, replacementCharacter);
           chrome.downloads.download({
               url: img.src,
-              filename: imageFilename,
-              saveAs: false })});
+              filename: legalImageFullPath,
+              saveAs: false })
+
+          img.setAttribute('src',legalImageFullPath);
+
+          // NOTE: the img.setAttribute statement above should work but this is a messier alternative that I got working first
+          // newArticleContent = newArticleContent.replace(img.src, './' + imageFilename)
+      });
+      console.log(JSON.stringify(images));
+      console.log(oDOM.querySelector('html').outerHTML);
+
       // oDOM.querySelectorAll('img').forEach(img => console.log(img))
-      console.log(url);
-      console.log('ProcessorHelper.evalTemplate(): ', ProcessorHelper.evalTemplate(filenameTemplate, options));
+      // console.log(url);
+      // console.log('ProcessorHelper.evalTemplate(): ', ProcessorHelper.evalTemplate(filenameTemplate, options));
       let filename = await ProcessorHelper.evalTemplate(filenameTemplate, options) || '';
       let filenameConflictAction = "uniquify";
-      let legalFilename = util.getValidFilename(filename, filenameReplacedCharacters, replacementCharacter);
+      let legalFullPath = util.getValidFilename(downloadPath + filename, filenameReplacedCharacters, replacementCharacter);
     chrome.downloads.download({
       url: url,
-      filename: legalFilename,
+      filename: legalFullPath,
       // filename:generateValidFileName(article.title) + ".md",
       saveAs: !useTemplate
     },function(id) {
@@ -152,6 +170,18 @@ async function downloadMarkdown(markdown, article, useTemplate, filePathTemplate
   }
 }
 
+function runDownloadMarkdown(storedSettings) {
+    defaultSettings = {
+        pathTemplate: "archives/{url-hostname}/",
+        filenameTemplate: "{page-title}_({date-iso}_{time-locale}).md",
+        useTemplate: true
+    }
+    if (!storedSettings.filenameTemplate || !storedSettings.dataTypes) {
+        browser.storage.local.set(defaultSettings);
+    }
+    downloadMarkdown(markdown, article, storedSettings.useTemplate, storedSettings.pathTemplate, storedSettings.filenameTemplate, message.source);
+}
+
 
 //function that handles messages from the injected script into the site
 function notify(message) {
@@ -161,26 +191,16 @@ function notify(message) {
         console.error("error while parsing");
     }
 
-
-
   var article = createReadableVersion(dom);
   var markdown = convertArticleToMarkdown(article, message.source);
-  function runDownloadMarkdown(storedSettings) {
-      defaultSettings = {
-          filePathTemplate: "archives/{url-hostname}/",
-          filenameTemplate: "{page-title}_({date-iso}_{time-locale}).md",
-          useTemplate: true
-      }
-      if (!storedSettings.filenameTemplate || !storedSettings.dataTypes) {
-          browser.storage.local.set(defaultSettings);
-      }
-      downloadMarkdown(markdown, article, storedSettings.useTemplate, storedSettings.filePathTemplate, storedSettings.filenameTemplate, message.source);
-  }
   const gettingStoredSettings = browser.storage.local.get();
   gettingStoredSettings.then(runDownloadMarkdown, onError);
 }
 
-// const URL = window.URL;
+const DEFAULT_REPLACED_CHARACTERS = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
+const DEFAULT_REPLACEMENT_CHARACTER = "_";
+
+const URL = window.URL;
 const DOMParser = window.DOMParser;
 const Blob = window.Blob;
 const FileReader = window.FileReader;
@@ -258,51 +278,7 @@ const util = {
             }, false);
             reader.addEventListener("error", reject, false);
         });
-    },
-    minifyHTML(doc, options) {
-        return modules.htmlMinifier.process(doc, options);
-    },
-    minifyCSSRules(stylesheets, styles, mediaAllInfo) {
-        return modules.cssRulesMinifier.process(stylesheets, styles, mediaAllInfo);
-    },
-    removeUnusedFonts(doc, stylesheets, styles, options) {
-        return modules.fontsMinifier.process(doc, stylesheets, styles, options);
-    },
-    removeAlternativeFonts(doc, stylesheets, fontURLs) {
-        return modules.fontsAltMinifier.process(doc, stylesheets, fontURLs);
-    },
-    getMediaAllInfo(doc, stylesheets, styles) {
-        return modules.matchedRules.getMediaAllInfo(doc, stylesheets, styles);
-    },
-    compressCSS(content, options) {
-        return vendor.cssMinifier.processString(content, options);
-    },
-    minifyMedias(stylesheets) {
-        return modules.mediasAltMinifier.process(stylesheets);
-    },
-    removeAlternativeImages(doc) {
-        return modules.imagesAltMinifier.process(doc);
-    },
-    parseSrcset(srcset) {
-        return vendor.srcsetParser.process(srcset);
-    },
-    preProcessDoc(doc, win, options) {
-        return helper.preProcessDoc(doc, win, options);
-    },
-    postProcessDoc(doc, markedElements) {
-        helper.postProcessDoc(doc, markedElements);
-    },
-    serialize(doc, compressHTML) {
-        return modules.serializer.process(doc, compressHTML);
-    },
-    removeQuotes(string) {
-        return helper.removeQuotes(string);
-    },
-    waitForUserScript(eventPrefixName) {
-        if (helper.waitForUserScript) {
-            return helper.waitForUserScript(eventPrefixName);
-        }
-    },
+    }
 }
 
 function action(){
