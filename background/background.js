@@ -47,91 +47,71 @@ function generateValidFileName(title) {
 
 async function downloadMarkdown(markdown, article, options) {
 
-  var blob = new Blob([markdown], {
-    type: "text/markdown;charset=utf-8"
-  });
-  var url = URL.createObjectURL(blob);
-  if (chrome) {
-    // return {
-      //     title: this._articleTitle,
-      //     byline: metadata.byline || this._articleByline,
-      //     dir: this._articleDir,
-      //     content: articleContent.innerHTML,
-      //     textContent: textContent,
-      //     length: textContent.length,
-      //     excerpt: metadata.excerpt,
-      //     siteName: metadata.siteName || this._articleSiteName
-      // };
-      //options:
-        //title
-        //info.heading
-        //info.lang
-        //info.author
-        //info.creator
-        //info.publisher
-        //saveUrl
-        //tabId
-        //tabIndex
+    const blob = new Blob([markdown], {type: "text/markdown;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
 
-      // let newArticleContent = article.content
-      // let images = readDOM.querySelectorAll('img');
-      // images.forEach(async function(img) {
-      //     const imageFilename = new URL(img.websrc).pathname.split('/').pop();
-      //     let legalImageFilename = util.getValidFilename(imageFilename, filenameReplacedCharacters, replacementCharacter);
-      //     let legalImageFullPath = util.getValidFilename(downloadPath + imageFilename, filenameReplacedCharacters, replacementCharacter);
-      //     chrome.downloads.download({
-      //         url: img.websrc,
-      //         filename: legalImageFullPath,
-      //         saveAs: false })
-      //
-      //     img.setAttribute('src',legalImageFullPath);
-      //
-      //     // NOTE: the img.setAttribute statement above should work but this is a messier alternative that I got working first
-      //     // newArticleContent = newArticleContent.replace(img.src, './' + imageFilename)
-      // });
+    // let newArticleContent = article.content
+    // let images = readDOM.querySelectorAll('img');
+    // images.forEach(async function(img) {
+    //     const imageFilename = new URL(img.websrc).pathname.split('/').pop();
+    //     let legalImageFilename = util.getValidFilename(imageFilename, filenameReplacedCharacters, replacementCharacter);
+    //     let legalImageFullPath = util.getValidFilename(downloadPath + imageFilename, filenameReplacedCharacters, replacementCharacter);
+    //     chrome.downloads.download({
+    //         url: img.websrc,
+    //         filename: legalImageFullPath,
+    //         saveAs: false })
+    //
+    //     img.setAttribute('src',legalImageFullPath);
+    // });
 
-      let filename = await ProcessorHelper.evalTemplate(filenameTemplate, options) || '';
-      let filenameConflictAction = "uniquify";
-      let legalFullPath = util.getValidFilename(options.downloadPath + filename, options.filenameReplacedCharacters, options.replacementCharacter);
-    chrome.downloads.download({
-      url: url,
-      filename: legalFullPath,
-      // filename:generateValidFileName(article.title) + ".md",
-      saveAs: !useTemplate
-    },function(id) {
-      chrome.downloads.onChanged.addListener((delta ) => {
-        //release the url for the blob
-        if (delta.state && delta.state.current === "complete") {
-          if (delta.id === id) {
-            window.URL.revokeObjectURL(url);
-          }
+    let filename = await ProcessorHelper.evalTemplate(options.filenameTemplate, options) || '';
+    let filenameConflictAction = "uniquify";
+    let legalFullPath = util.getValidFilename(options.downloadPath + filename, options.filenameReplacedCharacters, options.replacementCharacter);
+    console.log('filename: ', filename)
+    console.log('legalFullPath: ', legalFullPath)
+    console.log('url: ', url)
+    console.log('options.useTemplate: ', options.useTemplate)
+
+    if (chrome) {
+        chrome.downloads.download({
+            url: url,
+            filename: legalFullPath,
+            saveAs: !options.useTemplate
         }
-      });
-    });
+        ,
+            function (id) {
+            chrome.downloads.onChanged.addListener((delta) => {
+                //release the url for the blob
+                if (delta.state && delta.state.current === "complete") {
+                    if (delta.id === id) {
+                        window.URL.revokeObjectURL(url);
+                    }
+                }
+            });
+        } );
 
-  }else {
-    browser.downloads.download({
-      url: url,
-      filename: legalFilename,
-        // filename:generateValidFileName(article.title) + ".md",
-      // article.title) + ".md",incognito: true,
-      saveAs: !useTemplate
-    }).then((id) => {
-      browser.downloads.onChanged.addListener((delta ) => {
-        //release the url for the blob
-        if (delta.state && delta.state.current === "complete") {
-          if (delta.id === id) {
-            window.URL.revokeObjectURL(url);
-          }
-        }
-      });
-    }).catch((err) => {
-      console.error("Download failed" + err)
-    });
-  }
+    }
+    else {
+        browser.downloads.download({
+            url: url,
+            filename: legalFullPath,
+            saveAs: !options.useTemplate
+        }).then((id) => {
+            browser.downloads.onChanged.addListener((delta ) => {
+                //release the url for the blob
+                if (delta.state && delta.state.current === "complete") {
+                    if (delta.id === id) {
+                        window.URL.revokeObjectURL(url);
+                    }
+                }
+            });
+        }).catch((err) => {
+            console.error("Download failed" + err)
+        });
+    }
 }
 
-function getStoredSettings() {
+async function getStoredSettings() {
     return browser.storage.local.get()
         .then(function(storedSettings) {
             defaultSettings = {
@@ -139,27 +119,62 @@ function getStoredSettings() {
                 filenameTemplate: "{page-title}_({date-iso}_{time-locale}).md",
                 useTemplate: true
             };
-            if (!storedSettings.filenameTemplate || !storedSettings.dataTypes) {
-                browser.storage.local.set(defaultSettings);
+            if (!storedSettings.filenameTemplate || !storedSettings.filenameTemplate) {
+                browser.storage.local.set(defaultSettings)
             }
             return storedSettings || defaultSettings
         })
 }
 
-function downloadAndLocalifyImages(readDOM, filenameReplacedCharacters, replacementCharacters) {
-// let newArticleContent = article.content
-    let images = readDOM.querySelectorAll('img');
+async function downloadAndLocalifyImages(reparsedReadbilityDOM, options) {
+
+    let images = reparsedReadbilityDOM.querySelectorAll('img');
+
     images.forEach(async function (img) {
+
         const imageFilename = new URL(img.src).pathname.split('/').pop();
-        let filenameReplacedCharacters = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
-        let replacementCharacter = '_';
-        let legalImageFilename = util.getValidFilename(imageFilename, filenameReplacedCharacters, replacementCharacter);
-        let legalImageFullPath = util.getValidFilename(downloadPath + imageFilename, filenameReplacedCharacters, replacementCharacter);
-        chrome.downloads.download({
-            url: img.src,
-            filename: legalImageFullPath,
-            saveAs: false
-        })
+        let legalImageFilename = util.getValidFilename(imageFilename, options.filenameReplacedCharacters, options.replacementCharacter);
+        let legalImageFullPath = util.getValidFilename(options.downloadPath + imageFilename, options.filenameReplacedCharacters, options.replacementCharacter);
+        if (chrome) {
+            if (chrome) {
+                chrome.downloads.download({
+                        url: img.src,
+                        filename: legalImageFullPath,
+                        saveAs: !options.useTemplate
+                    }
+                    ,
+                    function (id) {
+                        chrome.downloads.onChanged.addListener((delta) => {
+                            //release the url for the blob
+                            if (delta.state && delta.state.current === "complete") {
+                                if (delta.id === id) {
+                                    window.URL.revokeObjectURL(img.src);
+                                }
+                            }
+                        });
+                    } );
+
+            } else {
+                browser.downloads.download({
+                    url: img.src,
+                    filename: legalImageFullPath,
+                    saveAs: false
+                })
+                    .then((id) => {
+                        chrome.downloads.onChanged.addListener((delta) => {
+                            //release the url for the blob
+                            if (delta.state && delta.state.current === "complete") {
+                                if (delta.id === id) {
+                                    window.URL.revokeObjectURL(img.src);
+                                }
+                            }
+                        });
+                    }).catch((err) => {
+                    console.error("Download failed" + err)
+                });
+            }
+
+        }
 
         img.setAttribute('src', legalImageFullPath);
 
@@ -167,12 +182,12 @@ function downloadAndLocalifyImages(readDOM, filenameReplacedCharacters, replacem
         // newArticleContent = newArticleContent.replace(img.src, './' + imageFilename)
     });
 
-    return readDOM
+    return reparsedReadbilityDOM
 }
 
 
 //function that handles messages from the injected script into the site
-function notify(message) {
+async function notify(message) {
     const parser = new DOMParser();
     const dom = parser.parseFromString(message.dom, "text/html");
     if (dom.documentElement.nodeName === "parsererror") {
@@ -180,44 +195,47 @@ function notify(message) {
     }
 
     let article = createReadableVersion(dom);
-    getStoredSettings()
-        .then(storedSettings => {
-            let options = {
-                useTemplate: storedSettings.useTemplate,
-                pathTemplate: storedSettings.pathTemplate,
-                filenameTemplate: storedSettings.filenameTemplate,
-                title: article.title,
-                saveUrl: message.source,
-                saveDate: new Date(),
-                info: {
-                    heading: article.excerpt,
-                    // lang: '',
-                    author: article.byline,
-                    // creator: '',
-                    publisher: article.siteName
-                },
-                filenameMaxLength: 192,
-                filenameReplacedCharacters: ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"],
-                replacementCharacter: '_'
-            };
+    let storedSettings = await getStoredSettings()
+    console.log(storedSettings)
 
-            // NOTE THIS HSOULD BE await ProcessorHelper...
-            let downloadPath = ProcessorHelper.evalTemplate(pathTemplate, options) || '';
+    let options = {
+        useTemplate: storedSettings.useTemplate,
+        pathTemplate: storedSettings.pathTemplate,
+        filenameTemplate: storedSettings.filenameTemplate,
+        title: article.title,
+        saveUrl: message.source,
+        saveDate: new Date(),
+        info: {
+            heading: article.excerpt,
+            // lang: '',
+            author: article.byline,
+            // creator: '',
+            publisher: article.siteName
+        },
+        filenameMaxLength: 192,
+        filenameReplacedCharacters: ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"],
+        replacementCharacter: '_'
+    };
 
-            let legalFilePath = util.getValidFilename(downloadPath, options.filenameReplacedCharacters, options.replacementCharacter);
+    // NOTE THIS SHOULD BE await ProcessorHelper...
+    options.downloadPath = await ProcessorHelper.evalTemplate(storedSettings.pathTemplate, options) || '';
 
-            let images = []
-            if(storedSettings.saveImages) {
-                let readDOM = downloadAndLocalifyImages(readDOM=parser.parseFromString(article.content, "text/html"),
-                options)
-                // console.log(article.content)
-                // console.log(readDOM.querySelector('body').innerHTML)
-                article.content = readDOM.querySelector('body').innerHTML;
-            }
-            const markdown = convertArticleToMarkdown(article, message.source);
-            downloadMarkdown(markdown, article, options)},
-                onError
-        );
+    // let legalFilePath = util.getValidFilename(options.downloadPath, options.filenameReplacedCharacters, options.replacementCharacter);
+
+    let images = []
+    let readDOM = {}
+    if(storedSettings.saveImages) {
+        readDOM = await downloadAndLocalifyImages(
+            reparsedReadabilityDOM=parser.parseFromString(article.content, "text/html"),
+            options)
+        // console.log(article.content)
+        // console.log(readDOM.querySelector('body').innerHTML)
+        article.content = readDOM.querySelector('body').innerHTML;
+    }
+    const markdown = convertArticleToMarkdown(article, message.source);
+    downloadMarkdown(markdown, article, options).then(function(r) {console.log('r', r)}).catch(onError)
+    console.log('after downloadmarkdown')
+    // }, onError);
 }
 
 
