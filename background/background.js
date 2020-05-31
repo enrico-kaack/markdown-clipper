@@ -102,8 +102,8 @@ async function getStoredSettings() {
     return myBrowser.storage.local.get()
         .then(function (storedSettings) {
             const defaultSettings = {
-                pathTemplate: "archives/{/rl-hostname}/{date-iso}/",
-                filenameTemplate: "{page-title}_({date-iso}_{time-locale}).md",
+                pathTemplate: "archives/{/rl-hostname}/{datetime-iso}/",
+                filenameTemplate: "{page-title}_({datetime-iso}).md",
                 useTemplate: true
             };
             if (!storedSettings.filenameTemplate || !storedSettings.filenameTemplate) {
