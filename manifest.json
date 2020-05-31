@@ -25,9 +25,9 @@
   },
   "background": {
     "scripts": [
+      "background/Readability.js",
       "background/turndown.js",
       "background/turndown-plugin-gfm.js",
-      "background/Readability.js",
       "background/background.js"
     ]
   },

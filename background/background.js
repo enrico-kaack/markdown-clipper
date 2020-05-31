@@ -11,16 +11,16 @@ function onError(e) {
 }
 
 function createReadableVersion(dom) {
-    var reader = new Readability(dom);
-    var article = reader.parse();
+    const reader = new Readability(dom);
+    const article = reader.parse();
     return article;
 }
 
 function convertArticleToMarkdown(article, source) {
-    var turndownService = new TurndownService();
-    var gfm = turndownPluginGfm.gfm;
+    const turndownService = new TurndownService();
+    const gfm = turndownPluginGfm.gfm;
     turndownService.use(gfm);
-    var markdown = turndownService.turndown(article.content);
+    let markdown = turndownService.turndown(article.content);
 
     //add summary if exist
     if (!!article.excerpt) {
@@ -40,8 +40,8 @@ function convertArticleToMarkdown(article, source) {
 
 function generateValidFileName(title) {
     //remove < > : " / \ | ? *
-    var illegalRe = /[\/\?<>\\:\*\|":]/g;
-    var name = title.replace(illegalRe, "");
+    const illegalRe = /[\/\?<>\\:\*\|":]/g;
+    const name = title.replace(illegalRe, "");
     return name;
 }
 
@@ -54,7 +54,7 @@ async function downloadMarkdown(markdown, article, options) {
     let filenameConflictAction = "uniquify";
     let legalFullPath = util.getValidFilename(options.downloadPath + filename,
         options.filenameReplacedCharacters,
-        options.replacementCharacter);
+        options.filenameReplacementCharacter);
 
     if (chrome) {
         chrome.downloads.download({
@@ -99,7 +99,7 @@ async function getStoredSettings() {
 
     const myBrowser = browser ? browser : chrome;
 
-    return browser.storage.local.get()
+    return myBrowser.storage.local.get()
         .then(function (storedSettings) {
             const defaultSettings = {
                 pathTemplate: "archives/{/rl-hostname}/{date-iso}/",
@@ -120,8 +120,8 @@ async function downloadAndLocalifyImages(reparsedReadbilityDOM, options) {
     images.forEach(async function (img) {
 
         const imageFilename = new URL(img.src).pathname.split('/').pop();
-        let legalImageFilename = util.getValidFilename(imageFilename, options.filenameReplacedCharacters, options.replacementCharacter);
-        let legalImageFullPath = util.getValidFilename(options.downloadPath + imageFilename, options.filenameReplacedCharacters, options.replacementCharacter);
+        let legalImageFilename = util.getValidFilename(imageFilename, options.filenameReplacedCharacters, options.filenameReplacementCharacter);
+        let legalImageFullPath = util.getValidFilename(options.downloadPath + imageFilename, options.filenameReplacedCharacters, options.filenameReplacementCharacter);
         if (chrome) {
             if (chrome) {
                 chrome.downloads.download({
@@ -198,8 +198,8 @@ async function notify(message) {
             publisher: article.siteName
         },
         filenameMaxLength: 192,
-        filenameReplacedCharacters: ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"],
-        replacementCharacter: '_'
+        filenameReplacedCharacters: ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F", "\\s"],
+        filenameReplacementCharacter: '_'
     };
 
     options.downloadPath = await ProcessorHelper.evalTemplate(storedSettings.pathTemplate, options) || '';
@@ -216,9 +216,38 @@ async function notify(message) {
     downloadMarkdown(markdown, article, options).then(function(r) {console.log('Page download completed')}).catch(onError)
 }
 
+function action(){
+    if (chrome) {
+        chrome.tabs.query({currentWindow: true, active: true}, function(tabs) {
+            let id = tabs[0].id;
+            chrome.tabs.executeScript(id, {
+                file: "/contentScript/pageScraper.js"
+            }, function() {
+                console.log("Successfully injected");
+            });
 
+        });
+    } else {
+        browser.tabs.query({currentWindow: true, active: true})
+            .then((tabs) => {
+                let id = tabs[0].id;
+                browser.tabs.executeScript(id, {
+                    file: "/contentScript/pageScraper.js"
+                }).then( () => {
+                    console.log("Successfully injected");
+                }).catch( (error) => {
+                    console.error(error);
+                });
+            });
+    }
+}
 
+//---------------------//
+// Filename Templating //
+//---------------------//
 
+// code below taken from SingleFile (https://github.com/gildas-lormeau/SingleFile) and slightly edited
+// used with permission (also it's AGPL licensed)
 
 const DEFAULT_REPLACED_CHARACTERS = ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F"];
 const DEFAULT_REPLACEMENT_CHARACTER = "_";
@@ -279,31 +308,6 @@ const util = {
     }
 };
 
-function action(){
-    if (chrome) {
-        chrome.tabs.query({currentWindow: true, active: true}, function(tabs) {
-            let id = tabs[0].id;
-            chrome.tabs.executeScript(id, {
-                file: "/contentScript/pageScrapper.js"
-            }, function() {
-                console.log("Successfully injected");
-            });
-
-        });
-    } else {
-        browser.tabs.query({currentWindow: true, active: true})
-            .then((tabs) => {
-            var id = tabs[0].id;
-        browser.tabs.executeScript(id, {
-            file: "/contentScript/pageScrapper.js"
-        }).then( () => {
-            console.log("Successfully injected");
-    }).catch( (error) => {
-            console.error(error);
-    });
-    });
-    }
-}
 
 // ---------------
 // ProcessorHelper
@@ -381,6 +385,7 @@ class ProcessorHelper {
     }
 
 }
+
 // ----
 // Util
 // ----
