@@ -6,42 +6,26 @@
 </head>
 
 <body>
-<!--<p>storage.managed file path: <b id="filepath-show">no value found</b></p>-->
-<!--<form>-->
-    <!--<label>File path to write to</label>-->
-    <!--<input type="text" id="filepath" >-->
-    <!--<button type="submit">Save</button>-->
-<!--</form>-->
-<!--<p>storage.managed save images: <b id="saveimages-show">no value found</b></p>-->
-<!--<form>-->
-    <!--<label>Favourite colour</label>-->
-    <!--<input type="text" id="saveimages" >-->
-    <!--<button type="submit">Save</button>-->
-<!--</form>-->
-<!--<p>color: <b id="colorshow">no value found</b></p>-->
-<!--<div id="colorshow"></div>-->
-<!--<div id="use-template-show"></div>-->
-<!--<div id="save-images-show"></div>-->
-<!--<div id="path-template-show"></div>-->
-<!--<div id="filename-template-show"></div>-->
 <form>
     <div>
         <input type="checkbox" id="use-template" />
         <label for="use-template">Use path and filename template</label><br/>
-        <em>(instead of Save As prompt on every download)</em><br/><br/>
+        <em>If unchecked, will open a new Save As prompt for every download</em><br/><br/>
     </div>
     <div>
         <input type="checkbox" id="save-images" />
         <label for="save-images">Save images</label><br/>
-        <em>(images are written using original filenames to Path Template; otherwise the markdown file will contain links to the images' original location on the internet)</em><br/><br/>
+        <em>Images are written using original filenames to the 'Save path' location below<br/>If unchecked, the markdown file will contain links to the images' original location on the internet</em><br/><br/>
     </div>
     <div>
-        <label for="path-template">File path:</label><br/>
-        <input type="text" id="path-template" /><br/><br/>
+        <label for="path-template">Save path:</label><br/>
+        <input type="text" id="path-template" style="min-width:70%;"/><br/>
+        <em>Path within the default Downloads folder</em><br/><br/>
     </div>
     <div>
-        <label for="filename-template">Filename (including markdown extension):</label><br/>
-        <input type="text" id="filename-template" /><br/><br/>
+        <label for="filename-template">Filename:</label><br/>
+        <input type="text" id="filename-template" style="min-width:70%;"/><br/>
+        <em>Including extension</em><br/><br/>
     </div>
     <button type="submit">Save</button>
 </form>
