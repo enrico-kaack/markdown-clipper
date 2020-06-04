@@ -97,24 +97,48 @@ async function downloadMarkdown(markdown, article, options) {
 
 async function getStoredSettings() {
 
-    const myBrowser = browser ? browser : chrome;
-
-    return myBrowser.storage.local.get()
-        .then(function (storedSettings) {
+    // console.log('starting get stored settings')
+    // try {
+    //     const browserType = typeof browser !== "undefined" ? "notChrome" : "chrome"
+    //     console.log(browserType)
+    // } catch(err) {
+    //     const browserType = "chrome"
+    //     console.log(err)
+    // }
+    // if (browserType === "chrome") {
+    return new Promise(resolve => {
+        chrome.storage.local.get(function (storedSettings) {
             const defaultSettings = {
                 pathTemplate: "archives/{/rl-hostname}/{datetime-iso}/",
                 filenameTemplate: "{page-title}_({datetime-iso}).md",
                 useTemplate: true
             };
+            console.log(storedSettings)
             if (!storedSettings.filenameTemplate || !storedSettings.filenameTemplate) {
-                browser.storage.local.set(defaultSettings)
+                console.error('throwing error because filenameTemplate resolve to false')
+                chrome.storage.local.set(defaultSettings)
             }
-            return storedSettings || defaultSettings
-        })
+            resolve( storedSettings || defaultSettings)
+        })})
+    // } else {
+    //     browser.storage.local.get()
+    //         .then(function (storedSettings) {
+    //             const defaultSettings = {
+    //                 pathTemplate: "archives/{/rl-hostname}/{datetime-iso}/",
+    //                 filenameTemplate: "{page-title}_({datetime-iso}).md",
+    //                 useTemplate: true
+    //             };
+    //             if (!storedSettings.filenameTemplate || !storedSettings.filenameTemplate) {
+    //                 browser.storage.local.set(defaultSettings)
+    //             }
+    //             return storedSettings || defaultSettings
+    //         })
+    // }
 }
 
 async function downloadAndLocalifyImages(reparsedReadbilityDOM, options) {
 
+    console.log('inside downloadnadlocalify')
     let images = reparsedReadbilityDOM.querySelectorAll('img');
 
     images.forEach(async function (img) {
@@ -180,12 +204,13 @@ async function notify(message) {
     }
 
     let article = createReadableVersion(dom);
-    let storedSettings = await getStoredSettings();
+    const storedSettings = await getStoredSettings();
+    console.log("notify storedSettings: ", storedSettings)
 
     let options = {
-        useTemplate: storedSettings.useTemplate,
-        pathTemplate: storedSettings.pathTemplate,
-        filenameTemplate: storedSettings.filenameTemplate,
+        useTemplate: await storedSettings.useTemplate,
+        pathTemplate: await storedSettings.pathTemplate,
+        filenameTemplate: await storedSettings.filenameTemplate,
         downloadPath: '', // assigned below because we have to pass in 'options'
         title: article.title,
         saveUrl: message.source,
@@ -201,6 +226,8 @@ async function notify(message) {
         filenameReplacedCharacters: ["~", "+", "\\\\", "?", "%", "*", ":", "|", "\"", "<", ">", "\x00-\x1f", "\x7F", "\\s"],
         filenameReplacementCharacter: '_'
     };
+
+    console.log("notify options: ", options)
 
     options.downloadPath = await ProcessorHelper.evalTemplate(storedSettings.pathTemplate, options) || '';
 

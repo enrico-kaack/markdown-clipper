@@ -23,7 +23,7 @@ function storeSettings() {
         return filenameTemplate.value;
     }
 
-    browser.storage.local.set({
+    chrome.storage.local.set({
         saveImages: getSaveImages(),
         useTemplate: getUseTemplate(),
         pathTemplate: getPathTemplate(),
@@ -54,11 +54,16 @@ function onError(e) {
 /*
  On opening the options page, fetch stored settings and update the UI with them.
  */
-const gettingStoredSettings = browser.storage.local.get();
-gettingStoredSettings.then(restoreOptions, onError);
+// if (!browser && chrome) {
+if (chrome) {
+    const gettingStoredSettings = chrome.storage.local.get(restoreOptions);
+} else {
+    const gettingStoredSettings = browser.storage.local.get();
+    gettingStoredSettings.then(restoreOptions, onError);
+}
 
 /*
  On clicking the save button, save the currently selected settings.
  */
 document.querySelector("form").addEventListener("submit", storeSettings);
-// document.addEventListener('DOMContentLoaded', restoreOptions);
+document.addEventListener('DOMContentLoaded', restoreOptions);
