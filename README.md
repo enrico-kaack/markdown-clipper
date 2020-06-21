@@ -11,7 +11,8 @@ The plugin is available for [Firefox](https://addons.mozilla.org/de/firefox/addo
 
 # Permissions
 - Access tabs: used to access the website content when the icon in the browser bar is clicked.
-- Manage Downloads: neccessary to be able to download the markdown file.
+- Manage Downloads: necessary to be able to download the markdown file.
+- Storage: stores preferences
 
 # Thanks
 - [SingleFile](https://github.com/gildas-lormeau/SingleFile) and Gildas Lormeau for the templating code.
