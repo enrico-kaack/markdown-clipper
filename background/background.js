@@ -27,7 +27,7 @@ function convertArticleToMarkdown(article, source) {
         markdown = "\n> " + article.excerpt + "\n\n" + markdown;
     }
 
-    //add article titel as header
+    //add article title as header
     markdown = "# " + article.title + "\n" + markdown;
 
     //add source if exist
@@ -38,20 +38,12 @@ function convertArticleToMarkdown(article, source) {
     return markdown;
 }
 
-function generateValidFileName(title) {
-    //remove < > : " / \ | ? *
-    const illegalRe = /[\/\?<>\\:\*\|":]/g;
-    const name = title.replace(illegalRe, "");
-    return name;
-}
-
-async function downloadMarkdown(markdown, article, options) {
+async function downloadMarkdown(markdown, options) {
 
     const blob = new Blob([markdown], {type: "text/markdown;charset=utf-8"});
     const url = URL.createObjectURL(blob);
 
     let filename = await ProcessorHelper.evalTemplate(options.filenameTemplate, options) || '';
-    let filenameConflictAction = "uniquify";
     let legalFullPath = util.getValidFilename(options.downloadPath + filename,
         options.filenameReplacedCharacters,
         options.filenameReplacementCharacter);
@@ -97,48 +89,23 @@ async function downloadMarkdown(markdown, article, options) {
 
 async function getStoredSettings() {
 
-    // console.log('starting get stored settings')
-    // try {
-    //     const browserType = typeof browser !== "undefined" ? "notChrome" : "chrome"
-    //     console.log(browserType)
-    // } catch(err) {
-    //     const browserType = "chrome"
-    //     console.log(err)
-    // }
-    // if (browserType === "chrome") {
     return new Promise(resolve => {
         chrome.storage.local.get(function (storedSettings) {
             const defaultSettings = {
-                pathTemplate: "archives/{/rl-hostname}/{datetime-iso}/",
+                pathTemplate: "archives/{url-hostname}/{datetime-iso}/",
                 filenameTemplate: "{page-title}_({datetime-iso}).md",
                 useTemplate: true
             };
-            console.log(storedSettings)
-            if (!storedSettings.filenameTemplate || !storedSettings.filenameTemplate) {
-                console.error('throwing error because filenameTemplate resolve to false')
+            if (!storedSettings.filenameTemplate) {
+                console.error('filenameTemplate resolve to false')
                 chrome.storage.local.set(defaultSettings)
             }
             resolve( storedSettings || defaultSettings)
         })})
-    // } else {
-    //     browser.storage.local.get()
-    //         .then(function (storedSettings) {
-    //             const defaultSettings = {
-    //                 pathTemplate: "archives/{/rl-hostname}/{datetime-iso}/",
-    //                 filenameTemplate: "{page-title}_({datetime-iso}).md",
-    //                 useTemplate: true
-    //             };
-    //             if (!storedSettings.filenameTemplate || !storedSettings.filenameTemplate) {
-    //                 browser.storage.local.set(defaultSettings)
-    //             }
-    //             return storedSettings || defaultSettings
-    //         })
-    // }
 }
 
 async function downloadAndLocalifyImages(reparsedReadbilityDOM, options) {
 
-    console.log('inside downloadnadlocalify')
     let images = reparsedReadbilityDOM.querySelectorAll('img');
 
     images.forEach(async function (img) {
@@ -152,8 +119,7 @@ async function downloadAndLocalifyImages(reparsedReadbilityDOM, options) {
                         url: img.src,
                         filename: legalImageFullPath,
                         saveAs: !options.useTemplate
-                    }
-                    ,
+                    },
                     function (id) {
                         chrome.downloads.onChanged.addListener((delta) => {
                             //release the url for the blob
@@ -163,7 +129,7 @@ async function downloadAndLocalifyImages(reparsedReadbilityDOM, options) {
                                 }
                             }
                         });
-                    } );
+                    });
 
             } else {
                 browser.downloads.download({
@@ -172,7 +138,7 @@ async function downloadAndLocalifyImages(reparsedReadbilityDOM, options) {
                     saveAs: false
                 })
                     .then((id) => {
-                        chrome.downloads.onChanged.addListener((delta) => {
+                        browser.downloads.onChanged.addListener((delta) => {
                             //release the url for the blob
                             if (delta.state && delta.state.current === "complete") {
                                 if (delta.id === id) {
@@ -188,14 +154,14 @@ async function downloadAndLocalifyImages(reparsedReadbilityDOM, options) {
         }
 
         // set image source to local path so that markdown version will point to the local path
-        img.setAttribute('src', legalImageFullPath);
+        img.setAttribute('src', legalImageFilename);
     });
 
     return reparsedReadbilityDOM
 }
 
 
-//function that handles messages from the injected script into the site
+// (on a message from the injected page scraper script) get DOM from message, parse, and save it
 async function notify(message) {
     const parser = new DOMParser();
     const dom = parser.parseFromString(message.dom, "text/html");
@@ -205,7 +171,6 @@ async function notify(message) {
 
     let article = createReadableVersion(dom);
     const storedSettings = await getStoredSettings();
-    console.log("notify storedSettings: ", storedSettings)
 
     let options = {
         useTemplate: await storedSettings.useTemplate,
@@ -227,8 +192,6 @@ async function notify(message) {
         filenameReplacementCharacter: '_'
     };
 
-    console.log("notify options: ", options)
-
     options.downloadPath = await ProcessorHelper.evalTemplate(storedSettings.pathTemplate, options) || '';
 
     if(storedSettings.saveImages) {
@@ -240,9 +203,11 @@ async function notify(message) {
         article.content = newImgDOM.querySelector('body').innerHTML;
     }
     const markdown = convertArticleToMarkdown(article, message.source);
-    downloadMarkdown(markdown, article, options).then(function(r) {console.log('Page download completed')}).catch(onError)
+    downloadMarkdown(markdown, options).then(function(r) {console.log('Page download completed')}).catch(onError)
 }
 
+// (when Markdown Clipper button is clicked) inject the script into site that loads the DOM
+// into an object and sends it back via a message
 function action(){
     if (chrome) {
         chrome.tabs.query({currentWindow: true, active: true}, function(tabs) {
@@ -252,7 +217,6 @@ function action(){
             }, function() {
                 console.log("Successfully injected");
             });
-
         });
     } else {
         browser.tabs.query({currentWindow: true, active: true})
@@ -283,9 +247,7 @@ const URL = window.URL;
 const DOMParser = window.DOMParser;
 const Blob = window.Blob;
 const FileReader = window.FileReader;
-const fetch = window.fetch;
 const crypto = window.crypto;
-const TextDecoder = window.TextDecoder;
 const TextEncoder = window.TextEncoder;
 const util = {
     parseURL(resourceURL, baseURI) {
@@ -343,11 +305,11 @@ const DATA_URI_PREFIX = "data:";
 
 class ProcessorHelper {
     static async evalTemplate(template = "", options, content, dontReplaceSlash) {
-        console.log('evaluating template, starting template: ', template)
+        console.log('evaluating template, starting template: ', template);
         const date = options.saveDate;
-        console.log('options.saveUrl: ', options.saveUrl)
+        console.log('options.saveUrl: ', options.saveUrl);
         const url = util.parseURL(options.saveUrl);
-        console.log('parsed URL: ', url)
+        console.log('parsed URL: ', url);
         template = await evalTemplateVariable(template, "page-title", () => options.title || "No title", dontReplaceSlash, options.filenameReplacementCharacter);
         console.log('evaluating template after page-title: ', template)
         template = await evalTemplateVariable(template, "page-heading", () => options.info.heading || "No heading", dontReplaceSlash, options.filenameReplacementCharacter);
