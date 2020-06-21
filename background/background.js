@@ -305,13 +305,9 @@ const DATA_URI_PREFIX = "data:";
 
 class ProcessorHelper {
     static async evalTemplate(template = "", options, content, dontReplaceSlash) {
-        console.log('evaluating template, starting template: ', template);
         const date = options.saveDate;
-        console.log('options.saveUrl: ', options.saveUrl);
         const url = util.parseURL(options.saveUrl);
-        console.log('parsed URL: ', url);
         template = await evalTemplateVariable(template, "page-title", () => options.title || "No title", dontReplaceSlash, options.filenameReplacementCharacter);
-        console.log('evaluating template after page-title: ', template)
         template = await evalTemplateVariable(template, "page-heading", () => options.info.heading || "No heading", dontReplaceSlash, options.filenameReplacementCharacter);
         // template = await evalTemplateVariable(template, "page-language", () => options.info.lang || "No language", dontReplaceSlash, options.filenameReplacementCharacter);
         template = await evalTemplateVariable(template, "page-description", () => options.info.description || "No description", dontReplaceSlash, options.filenameReplacementCharacter);
@@ -361,7 +357,6 @@ class ProcessorHelper {
             template = await evalTemplateVariable(template, "digest-sha-384", async () => util.digest("SHA-384", content), dontReplaceSlash, options.filenameReplacementCharacter);
             template = await evalTemplateVariable(template, "digest-sha-512", async () => util.digest("SHA-512", content), dontReplaceSlash, options.filenameReplacementCharacter);
         }
-        console.log('returning this template: ', template.trim())
         return template.trim();
 
         function decode(value) {
