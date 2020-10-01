@@ -13,7 +13,8 @@
   "permissions": [
     "activeTab",
     "tabs",
-    "downloads"
+    "downloads",
+    "storage"
   ],
   "browser_action": {
     "default_title": "markdown-clipper",
@@ -24,10 +25,15 @@
   },
   "background": {
     "scripts": [
+      "background/Readability.js",
       "background/turndown.js",
       "background/turndown-plugin-gfm.js",
-      "background/Readability.js",
       "background/background.js"
     ]
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "browser_style": true,
+    "chrome_style": true
   }
 }

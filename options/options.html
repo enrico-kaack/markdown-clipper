@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+
+<body>
+<form>
+    <div>
+        <input type="checkbox" id="use-template" />
+        <label for="use-template">Use path and filename template</label><br/>
+        <em>If unchecked, will open a new Save As prompt for every download</em><br/><br/>
+    </div>
+    <div>
+        <input type="checkbox" id="save-images" />
+        <label for="save-images">Save images</label><br/>
+        <em>Images are written using original filenames to the 'Save path' location below<br/>If unchecked, the markdown file will contain links to the images' original location on the internet</em><br/><br/>
+    </div>
+    <div>
+        <label for="path-template">Save path:</label><br/>
+        <input type="text" id="path-template" style="min-width:70%;"/><br/>
+        <em>Path within the default Downloads folder</em><br/><br/>
+    </div>
+    <div>
+        <label for="filename-template">Filename:</label><br/>
+        <input type="text" id="filename-template" style="min-width:70%;"/><br/>
+        <em>Including extension</em><br/><br/>
+    </div>
+    <p><a href="template-help.html">Template help</a></p>
+    <button type="submit">Save</button>
+</form>
+<script src="options.js"></script>
+</body>
+
+</html>

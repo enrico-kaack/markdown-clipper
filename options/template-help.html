@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>markdown-clipper template help</title>
+    <link rel="stylesheet" href="help.css">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+
+<body>
+<div>
+    <div id="titleBorder">
+        <h2>Template Variable Help</h2>
+        <p>Template system originally from the fantastic <a href="https://github.com/gildas-lormeau/SingleFile">SingleFile</a> extension</p>
+        <a href="options.html">back to main preferences page</a>
+    </div>
+    <hr>
+    <div style="margin-left: 10px;">
+    <p>The template variables are used to customize the infobar content or the file name of a saved page.
+        They help to insert dynamic values like the save date or the page title.</p>
+    <p>
+        You can limit the length of a dynamic value by adding <code>[<em>maxByteSize</em>]</code> just after
+        the variable name. The <code>maxByteSize</code> value is the maximum length of the value in bytes
+        (e.g. `{page-title}[20]` to limit the title to 20 bytes).</p>
+    <ul>
+        <li><code>{page-title}</code>: the title of the page</li>
+        <li><code>{page-heading}</code>: the content of the H1 tag in the page</li>
+        <!--<li><code>{page-language}</code>: the language of the page</li>-->
+        <li><code>{page-description}</code>: the description of the page</li>
+        <li><code>{page-author}</code>: the author of the page</li>
+        <!--<li><code>{page-creator}</code>: the creator of the page</li>-->
+        <li><code>{page-publisher}</code>: the publisher of the page</li>
+        <li><code>{datetime-iso}</code>: the save date and time in the ISO format (e.g.
+            "2018-09-15T22_38_26_317Z")</li>
+        <li><code>{datetime-utc}</code>: the save date and time in UTC format (e.g. "Sat, 15 Sep 2018
+            22_38_26 GMT")</li>
+        <li><code>{datetime-locale}</code>: the localized value of the date and time (e.g. "9_16_2018,
+            12_54_31 AM")</li>
+        <li><code>{date-iso}</code>: the save date in the ISO format (e.g. "2018-09-15")</li>
+        <li><code>{date-locale}</code>: the localized value of the save date (e.g. "16_09_2018")</li>
+        <li><code>{time-iso}</code>: the save time in the ISO format (e.g. "22_38_26_317")</li>
+        <li><code>{time-locale}</code>: the localized value of the save time (e.g. "00_38_26")</li>
+        <li><code>{day-utc}</code>: the day of the save date in UTC format (e.g. "15")</li>
+        <li><code>{day-locale}</code>: the localized value of the day (e.g. "15")</li>
+        <li><code>{month-utc}</code>: the month of the save date in UTC format (e.g. "09")</li>
+        <li><code>{month-locale}</code>: the localized value of the month (e.g. "09")</li>
+        <li><code>{year-utc}</code>: the year of the save date in UTC format (e.g. "2018")</li>
+        <li><code>{year-locale}</code>: the localized value of the year (e.g. "2018")</li>
+        <li><code>{hours-utc}</code>: the hour of the save date in UTC format (e.g. "20")</li>
+        <li><code>{hours-locale}</code>: the localized value of the hour (e.g. "22")</li>
+        <li><code>{minutes-utc}</code>: the minutes of the save date in UTC format (e.g. "38")</li>
+        <li><code>{minutes-locale}</code>: the localized value of the minutes (e.g. "38")</li>
+        <li><code>{seconds-utc}</code>: the seconds of the save date in UTC format (e.g. "31")</li>
+        <li><code>{seconds-locale}</code>: the localized value of the seconds (e.g. "31")</li>
+        <li><code>{url-href}</code>: the URL of the page (e.g. "http_example.com")</li>
+        <li><code>{url-pathname}</code>: the path name of the URL (e.g. "category_index.html")</li>
+        <li><code>{url-last-segment}</code>: the last part of the pathname (without the extension) or the
+            host if not found (e.g. "index")</li>
+        <li><code>{url-protocol}</code>: the protocol of the URL (e.g. "https")</li>
+        <li><code>{url-host}</code>: the host name + the port of the URL (e.g. "example.com_8080")</li>
+        <li><code>{url-hostname}</code>: the host name of the URL (e.g. "example.com")</li>
+        <li><code>{url-port}</code>: the port of the URL (e.g. "8080")</li>
+        <li><code>{url-username}</code>: the user name of the URL (e.g. "john_doe")</li>
+        <li><code>{url-password}</code>: the password of the URL (e.g. "qwerty123")</li>
+        <li><code>{url-search}</code>: the search string of the URL (e.g. "order=ascending")</li>
+        <li><code>{url-search-&lt;name&gt;}</code>: the query parameter "&lt;name&gt;" in the the search
+            string of the URL (e.g. "url-search-order" will return "ascending" in the previous example)</li>
+        <li><code>{url-hash}</code>: the hash of the URL (e.g. "chapter-2")</li>
+        <li><code>{url-referrer}</code>: the URI of the page that "linked" to the page (e.g.
+            "http_example.com")</li>
+        <li><code>{tab-id}</code>: the unique identifier of the tab (e.g. "326")</li>
+        <li><code>{tab-index}</code>: the index of the tab in the window (e.g. "1")</li>
+        <li><code>{digest-sha-256}</code>: the SHA-256 hash value of the entire page content (e.g.
+            e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)</li>
+        <li><code>{digest-sha-384}</code>: the SHA-384 hash value of the entire page content</li>
+        <li><code>{digest-sha-512}</code>: the SHA-512 hash value of the entire page content</li>
+    </ul>
+</div>
+<a href="options.html">back to main preferences page</a></div>
+</body>
+
+</html>
