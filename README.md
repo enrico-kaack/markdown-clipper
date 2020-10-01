@@ -1,5 +1,7 @@
 # markdown-clipper
 
+> ‼️ Maintainer inactive until mid November 2020.
+
 This is a Firefox and Google Chrome extension to clip websites and download them into a readable markdown file.
 
 It uses the following libraries:
